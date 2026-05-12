@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bluesky ID Converter</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0085ff">
+    <link rel="icon" type="image/png" href="image/icon.png">
+    <link rel="apple-touch-icon" href="image.icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+    <style>
+        :root {
+            --primary-color: #0085ff;
+            --primary-hover: #0070d6;
+            /* 背景を青空風のグラデーションに定義 */
+            --sky-gradient: linear-gradient(180deg, #35a2ff 0%, #89cff0 40%, #ffffff 100%);
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --text-main: #0f1419;
+            --text-sub: #536471;
+            --error-color: #f4212e;
+            --success-bg: #e7f3ff;
+        }
+
+        /* スクロールを禁止し、背景を固定 */
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background: var(--sky-gradient);
+            background-attachment: fixed;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 420px;
+            background: var(--card-bg);
+            padding: 32px;
+            border-radius: 24px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px); /* 背景を少し透過させてぼかす */
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            margin: 0;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            box-sizing: border-box;
+            border: 2px solid #e1e8ed;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(0, 133, 255, 0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        button:hover {
+            background: var(--primary-hover);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .result-box {
+            margin-top: 24px;
+            padding: 20px;
+            background: var(--success-bg);
+            border-radius: 12px;
+            display: none;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .label {
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            letter-spacing: 0.05em;
+        }
+
+        .value-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.6);
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 133, 255, 0.1);
+        }
+
+        .value {
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 0.9rem;
+            word-break: break-all;
+            margin-right: 10px;
+        }
+
+        .copy-btn {
+            background: white;
+            border: 1px solid #d1d9e0;
+            color: var(--text-sub);
+            font-size: 0.75rem;
+            padding: 6px 10px;
+            width: auto;
+            border-radius: 6px;
+            white-space: nowrap;
+        }
+
+        .error {
+            background: #fff0f1;
+            color: var(--error-color);
+            padding: 12px;
+            border-radius: 12px;
+            margin-top: 16px;
+            font-size: 0.9rem;
+            display: none;
+            border-left: 4px solid var(--error-color);
+        }
+
+        .loader {
+            display: none;
+            text-align: center;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: var(--text-sub);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>🦋 ID Converter</h1>
+    </div>
+    
+    <div class="input-group">
+        <input type="text" id="inputId" placeholder=".bsky.social または did:plc:" />
+    </div>
+    
+    <button id="convertBtn" onclick="convertId()">変換</button>
+
+    <div id="loader" class="loader">情報を取得中...</div>
+    <div id="error" class="error"></div>
+
+    <div id="result" class="result-box">
+        <div class="label" id="resultLabel">RESULT</div>
+        <div class="value-container">
+            <div class="value" id="resultValue"></div>
+            <button class="copy-btn" id="copyBtn" onclick="copyToClipboard()">コピー</button>
+        </div>
+    </div>
+</div>
+
+<script>
+async function convertId() {
+    const input = document.getElementById('inputId').value.trim();
+    const resultDiv = document.getElementById('result');
+    const resultLabel = document.getElementById('resultLabel');
+    const resultValue = document.getElementById('resultValue');
+    const errorDiv = document.getElementById('error');
+    const loader = document.getElementById('loader');
+    const btn = document.getElementById('convertBtn');
+
+    resultDiv.style.display = 'none';
+    errorDiv.style.display = 'none';
+    
+    if (!input) return;
+
+    loader.style.display = 'block';
+    btn.disabled = true;
+
+    try {
+        let isDid = input.startsWith('did:');
+        let apiUrl = '';
+
+        if (isDid) {
+            apiUrl = `https://bsky.social/xrpc/com.atproto.repo.describeRepo?repo=${input}`;
+            const response = await fetch(apiUrl);
+            if (!response.ok) throw new Error('IDが見つかりませんでした。');
+            const data = await response.json();
+            
+            resultLabel.innerText = 'HANDLE (ハンドル)';
+            resultValue.innerText = data.handle;
+        } else {
+            apiUrl = `https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${input}`;
+            const response = await fetch(apiUrl);
+            if (!response.ok) throw new Error('ハンドルを解決できませんでした。');
+            const data = await response.json();
+            
+            resultLabel.innerText = 'DID (識別子)';
+            resultValue.innerText = data.did;
+        }
+        resultDiv.style.display = 'block';
+
+    } catch (err) {
+        errorDiv.innerText = '' + err.message;
+        errorDiv.style.display = 'block';
+    } finally {
+        loader.style.display = 'none';
+        btn.disabled = false;
+    }
+}
+
+function copyToClipboard() {
+    const val = document.getElementById('resultValue').innerText;
+    const copyBtn = document.getElementById('copyBtn');
+    
+    navigator.clipboard.writeText(val).then(() => {
+        const originalText = copyBtn.innerText;
+        copyBtn.innerText = '完了！';
+        setTimeout(() => { copyBtn.innerText = originalText; }, 2000);
+    });
+}
+
+document.getElementById('inputId').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') convertId();
+});
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('SW Registered'))
+            .catch(err => console.error('SW Registration Failed', err));
+    });
+}
+</script>
+
+</body>
+</html>
